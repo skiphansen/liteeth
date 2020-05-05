@@ -64,6 +64,8 @@ class LiteEthPHYGMIICRG(Module, AutoCSR):
                 o_O = self.cd_eth_tx.clk,
             )
         else:
+            # sh: Kludge to fix routing error on Pano Logic G2 platform
+
             # XXX Xilinx specific, replace BUFGMUX with a generic clock buffer?
             #self.specials += Instance("BUFGMUX",
             #    i_I0 = self.cd_eth_rx.clk,
@@ -71,13 +73,18 @@ class LiteEthPHYGMIICRG(Module, AutoCSR):
             #    i_S  = mii_mode,
             #    o_O  = self.cd_eth_tx.clk,
             #)
+            eth_tx = Signal()
             self.comb += [
                 If(mii_mode == 0,
-                   self.cd_eth_tx.clk.eq(self.cd_eth_rx.clk)
+                   eth_tx.eq(self.cd_eth_rx.clk)
                 ).Else(
-                   self.cd_eth_tx.clk.eq(clock_pads.tx)
+                   eth_tx.eq(clock_pads.tx)
                 )
             ]
+            self.specials += Instance("BUFG",
+                i_I = eth_tx,
+                o_O = self.cd_eth_tx.clk,
+            )
 
         reset = Signal()
         if with_hw_init_reset:
